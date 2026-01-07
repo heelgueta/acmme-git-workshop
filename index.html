@@ -1,0 +1,610 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flujos reproducibles con Git y GitHub</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/theme/black.css">
+
+  <style>
+    :root{
+      --bg0:#0b1020;
+      --bg1:#0f172a;
+      --fg:#e6edf3;
+      --muted:#9fb0c0;
+      --accent:#7dd3fc;
+      --accent2:#a78bfa;
+      --card: rgba(255,255,255,0.06);
+      --cardBorder: rgba(255,255,255,0.12);
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --ok:#34d399;
+    }
+
+    body{
+      background:
+        radial-gradient(900px 600px at 12% 10%, rgba(167,139,250,0.18), transparent 55%),
+        radial-gradient(900px 600px at 88% 25%, rgba(125,211,252,0.14), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+    }
+
+    .reveal{
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Noto Sans", "Helvetica Neue", sans-serif;
+      color: var(--fg);
+    }
+    .reveal .slides{ text-align:left; }
+
+    /* More compact to avoid cutoffs */
+    .reveal h1, .reveal h2, .reveal h3{
+      letter-spacing:-0.02em;
+      text-transform:none;
+      margin: 0 0 .26em 0;
+    }
+    .reveal h1{ font-size: 1.75em; }
+    .reveal h2{ font-size: 1.28em; }
+    .reveal h3{ font-size: 0.96em; color: var(--muted); }
+
+    .reveal p, .reveal li{
+      font-size: 0.84em;
+      line-height: 1.18;
+    }
+    .reveal ul{ margin: .32em 0 0 1.05em; }
+    .reveal li{ margin: .16em 0; }
+
+    .muted{ color: var(--muted); }
+    .accent{ color: var(--accent); }
+    .accent2{ color: var(--accent2); }
+
+    .card{
+      background: var(--card);
+      border: 1px solid var(--cardBorder);
+      border-radius: 12px;
+      padding: 10px 12px;
+      margin-top: 8px;
+    }
+    .hr{
+      height:1px;
+      background: rgba(255,255,255,0.12);
+      margin: 8px 0;
+    }
+
+    .row{
+      display:flex;
+      gap:12px;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .mono{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 0.86em;
+    }
+
+    .logoBox{
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--cardBorder);
+      background: rgba(255,255,255,0.05);
+    }
+    .logoBox svg{ width:42px; height:42px; }
+    .logoBox span{ font-size:0.92em; }
+
+    .time{
+      font-size:0.78em;
+      color: var(--muted);
+      border: 1px solid rgba(255,255,255,0.14);
+      background: rgba(255,255,255,0.05);
+      padding: 4px 8px;
+      border-radius: 999px;
+    }
+
+    .reveal .progress{ height:6px; }
+    .reveal .progress span{ background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+    .reveal .slide-number{ color: rgba(230,237,243,0.65); }
+
+    /* Timer slide */
+    .timerWrap{
+      display:flex;
+      gap:14px;
+      align-items:flex-start;
+      flex-wrap:wrap;
+    }
+    .timerBox{
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.14);
+      border-radius: 16px;
+      padding: 12px 14px;
+      min-width: 320px;
+    }
+    .timerDisplay{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      font-size: 2.2em;
+      letter-spacing: 0.02em;
+      margin-top: 6px;
+    }
+    .timerState{
+      margin-top: 6px;
+      font-size: 0.88em;
+      color: var(--muted);
+    }
+    .timerBtns{
+      display:flex;
+      gap:10px;
+      margin-top: 10px;
+      flex-wrap:wrap;
+    }
+    .btn{
+      cursor:pointer;
+      border: 1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.07);
+      color: var(--fg);
+      padding: 8px 10px;
+      border-radius: 10px;
+      font-size: 0.83em;
+      user-select: none;
+    }
+    .btn:hover{ background: rgba(255,255,255,0.11); }
+    .btnPrimary{
+      border-color: rgba(125,211,252,0.35);
+      background: rgba(125,211,252,0.12);
+    }
+    .warnEmoji{
+      font-size: 1.35em;
+      margin-left: 8px;
+      vertical-align: middle;
+      display:none;
+    }
+    .over .timerDisplay{ color: var(--bad); }
+    .over .warnEmoji{ display:inline; }
+    .ok .timerDisplay{ color: var(--ok); }
+  </style>
+</head>
+
+<body>
+  <div class="reveal">
+    <div class="slides">
+
+      <!-- Portada -->
+      <section data-transition="fade">
+        <h1>
+          Flujos reproducibles con <span class="accent">Git</span> y <span class="accent2">GitHub</span> para investigaciones psicológicas y sociales
+        </h1>
+        <h3>(cómo dejar de perder tus análisis, archivos y scripts)</h3>
+
+        <div class="card">
+          <p><strong>Herman Elgueta Sepúlveda</strong></p>
+          <p class="muted">Universidad de Magallanes</p>
+          <p class="muted">@heelgueta</p>
+          <div class="hr"></div>
+          <p class="muted">ACMME 2026 @ ULS</p>
+        </div>
+      </section>
+
+      <!-- Estructura -->
+      <section>
+        <h2>Estructura</h2>
+        <div class="card">
+          <ul>
+            <li class="fragment">Intro <span class="muted">(25 min)</span></li>
+            <li class="fragment">Demos <span class="muted">(25 min)</span></li>
+            <li class="fragment">Descanso <span class="muted">(10 min)</span></li>
+            <li class="fragment">Hands-on <span class="muted">(40 min)</span></li>
+            <li class="fragment">Discusión + cierre <span class="muted">(20 min)</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Intro -->
+      <section>
+        <div class="row">
+          <h2 style="margin:0;">Intro</h2>
+          <span class="time">25 min</span>
+        </div>
+        <div class="card">
+          <ul>
+            <li class="fragment">nosotros</li>
+            <li class="fragment">historia</li>
+            <li class="fragment">apertura</li>
+            <li class="fragment">git + github</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Nosotros -->
+      <section>
+        <h2>Nosotros</h2>
+        <div class="card">
+          <ul>
+            <li class="fragment">preguntitas</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Una historia -->
+      <section>
+        <h2>Una historia</h2>
+        <div class="card">
+          <ul>
+            <li class="fragment">psicología social, 2009</li>
+            <li class="fragment">Diederik Stapel</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Ciencia abierta -->
+      <section>
+        <h2>Ciencia abierta</h2>
+        <div class="card">
+          <ul>
+            <li class="fragment">OSF</li>
+            <li class="fragment">Google Drive</li>
+            <li class="fragment">Dropbox</li>
+            <li class="fragment">guidelines</li>
+            <li class="fragment">repositorios</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Git -->
+      <section>
+        <h2>Git</h2>
+        <div class="row">
+          <div class="logoBox">
+            <svg viewBox="0 0 256 256" aria-label="Git">
+              <path fill="#F05133" d="M128 10 10 128l118 118 118-118L128 10z"/>
+              <path fill="#fff" d="M164 132c-6 0-11 4-13 9l-26-26c1-2 2-4 2-7 0-8-6-14-14-14s-14 6-14 14c0 3 1 5 2 7l-28 28c-2-1-4-2-7-2-8 0-14 6-14 14s6 14 14 14c6 0 11-4 13-9l27-27 27 27c-1 2-2 4-2 7 0 8 6 14 14 14s14-6 14-14-6-14-14-14z"/>
+            </svg>
+            <span>Git</span>
+          </div>
+          <div class="card" style="margin-top:0;">
+            <ul>
+              <li class="fragment">“git”</li>
+              <li class="fragment">Linus Torvalds, 2005</li>
+              <li class="fragment">“the stupid content tracker”</li>
+              <li class="fragment">“the information manager from hell”</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <ul>
+            <li class="fragment">historial</li>
+            <li class="fragment">control de cambios</li>
+            <li class="fragment">mensajes</li>
+            <li class="fragment">revert</li>
+            <li class="fragment">trabajo en paralelo</li>
+            <li class="fragment">95% desarrolladores</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Glosario mínimo Git -->
+      <section>
+        <h2>Glosario mínimo (Git)</h2>
+        <div class="card">
+          <ul class="mono">
+            <li class="fragment">repo</li>
+            <li class="fragment">stage</li>
+            <li class="fragment">add</li>
+            <li class="fragment">diff</li>
+            <li class="fragment">reset</li>
+            <li class="fragment">checkout</li>
+            <li class="fragment">commit</li>
+            <li class="fragment">log</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- GitHub -->
+      <section>
+        <h2>GitHub</h2>
+        <div class="row">
+          <div class="logoBox">
+            <svg viewBox="0 0 256 256" aria-label="GitHub">
+              <path fill="#E6EDF3" d="M128 10C62 10 10 62 10 128c0 53 34 97 82 113 6 1 8-3 8-6v-20c-33 7-40-14-40-14-6-14-14-18-14-18-11-8 1-8 1-8 12 1 18 12 18 12 11 18 29 13 36 10 1-8 4-13 7-16-26-3-53-13-53-58 0-13 4-24 12-33-1-3-5-15 1-31 0 0 10-3 33 12 10-3 20-4 30-4s20 1 30 4c23-15 33-12 33-12 6 16 2 28 1 31 8 9 12 20 12 33 0 45-27 55-53 58 4 4 8 12 8 24v35c0 3 2 7 8 6 48-16 82-60 82-113C246 62 194 10 128 10z"/>
+            </svg>
+            <span>GitHub</span>
+          </div>
+          <div class="card" style="margin-top:0;">
+            <ul>
+              <li class="fragment">“github”, 2008</li>
+              <li class="fragment">microsoft, 2018</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <ul>
+            <li class="fragment">plataforma para repositorios</li>
+            <li class="fragment">nube</li>
+            <li class="fragment">red social</li>
+            <li class="fragment">&gt;500M repos open source (aprox.)</li>
+            <li class="fragment">&gt;5B contribuciones en 2024 (aprox.)</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Glosario Git <-> GitHub -->
+      <section>
+        <h2>Glosario mínimo (Git ⇄ GitHub)</h2>
+        <div class="card">
+          <ul class="mono">
+            <li class="fragment">remote</li>
+            <li class="fragment">clone</li>
+            <li class="fragment">push</li>
+            <li class="fragment">pull</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Demos -->
+      <section>
+        <div class="row">
+          <h2 style="margin:0;">Demos</h2>
+          <span class="time">25 min</span>
+        </div>
+        <div class="card">
+          <ul>
+            <li class="fragment">basics</li>
+            <li class="fragment">crear repo, commit</li>
+            <li class="fragment">clonar repo, commit, push</li>
+            <li class="fragment">improv</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2>Basics</h2>
+        <div class="card">
+          <ul>
+            <li class="fragment">curiosear en GitHub</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2>Crear repo, commit</h2>
+        <div class="card">
+          <ul>
+            <li class="fragment">desde web</li>
+            <li class="fragment">README</li>
+            <li class="fragment">primer commit</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2>Clonar repo, commit, push</h2>
+        <div class="card">
+          <ul>
+            <li class="fragment">GitHub Desktop</li>
+            <li class="fragment">consola</li>
+            <li class="fragment">IDE</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h2>Improv</h2>
+        <div class="card">
+          <ul>
+            <li class="fragment">show off</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Descanso con timer -->
+      <section id="break-slide">
+        <div class="row">
+          <h2 style="margin:0;">Descanso</h2>
+          <span class="time">10 min</span>
+        </div>
+
+        <div class="timerWrap">
+          <div id="timerBox" class="timerBox ok">
+            <div class="muted">Timer</div>
+            <div class="timerDisplay">
+              <span id="timerText">10:00</span>
+              <span id="warnEmoji" class="warnEmoji">⚠️</span>
+            </div>
+            <div id="timerState" class="timerState">listo</div>
+
+            <div class="timerBtns">
+              <div class="btn btnPrimary" id="btnStart">Iniciar</div>
+              <div class="btn" id="btnPause">Pausar</div>
+              <div class="btn" id="btnReset">Reset</div>
+            </div>
+
+            <div class="timerState muted">Atajos: S iniciar, P pausar, R reset</div>
+          </div>
+
+          <div class="card" style="max-width: 520px;">
+            <ul>
+              <li>dejen bajando / instalando Git y GitHub Desktop</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Hands-on -->
+      <section>
+        <div class="row">
+          <h2 style="margin:0;">Hands-on</h2>
+          <span class="time">40 min</span>
+        </div>
+
+        <div class="card">
+          <ul>
+            <li class="fragment">crear cuenta + configurar</li>
+            <li class="fragment">crear repo desde web</li>
+            <li class="fragment">primer(os) commit(s)</li>
+            <li class="fragment">pull repo remoto</li>
+            <li class="fragment">cambio + commit + push</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <ul>
+            <li class="fragment">GitHub Desktop</li>
+            <li class="fragment">consola</li>
+            <li class="fragment">IDE</li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- Cierre -->
+      <section data-transition="fade">
+        <div class="row">
+          <h2 style="margin:0;">Discusión + cierre</h2>
+          <span class="time">20 min</span>
+        </div>
+
+        <div class="card">
+          <ul>
+            <li class="fragment">preguntitas</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <ul>
+            <li class="fragment">1 repo por proyecto</li>
+            <li class="fragment">README</li>
+            <li class="fragment">.gitignore</li>
+            <li class="fragment">commits chicos</li>
+            <li class="fragment">push frecuente</li>
+          </ul>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/reveal.js@5/dist/reveal.js"></script>
+  <script>
+    Reveal.initialize({
+      hash: true,
+      slideNumber: true,
+      controls: true,
+      progress: true,
+      center: true,
+      transition: 'slide',
+      backgroundTransition: 'fade',
+      keyboard: true,
+      overview: true,
+      touch: true,
+
+      /* Safer for laptops */
+      width: 900,
+      height: 506,
+      margin: 0.05,
+      minScale: 0.62,
+      maxScale: 2.0
+    });
+
+    // =========================
+    // Break timer (10:00 -> negative, warning after 0)
+    // =========================
+    const DURATION_SEC = 10 * 60;
+
+    let timerInterval = null;
+    let running = false;
+    let startEpoch = null;
+    let elapsedBeforePause = 0;
+
+    const timerText = document.getElementById('timerText');
+    const timerState = document.getElementById('timerState');
+    const timerBox = document.getElementById('timerBox');
+    const warnEmoji = document.getElementById('warnEmoji');
+
+    function fmt(sec){
+      const neg = sec < 0;
+      const s = Math.abs(sec);
+      const mm = String(Math.floor(s / 60)).padStart(2,'0');
+      const ss = String(s % 60).padStart(2,'0');
+      return (neg ? '-' : '') + mm + ':' + ss;
+    }
+
+    function update(){
+      const now = Date.now();
+      const elapsed = elapsedBeforePause + (startEpoch ? Math.floor((now - startEpoch)/1000) : 0);
+      const remaining = DURATION_SEC - elapsed;
+
+      timerText.textContent = fmt(remaining);
+
+      if(remaining <= 0){
+        timerBox.classList.add('over');
+        timerBox.classList.remove('ok');
+        warnEmoji.style.display = 'inline';
+        timerState.textContent = running ? 'pasado' : 'pasado (pausado)';
+        timerState.style.color = 'var(--bad)';
+      } else {
+        timerBox.classList.remove('over');
+        timerBox.classList.add('ok');
+        warnEmoji.style.display = 'none';
+        timerState.textContent = running ? 'corriendo' : 'listo';
+        timerState.style.color = 'var(--muted)';
+      }
+    }
+
+    function start(){
+      if(running) return;
+      running = true;
+      startEpoch = Date.now();
+      if(timerInterval) clearInterval(timerInterval);
+      timerInterval = setInterval(update, 250);
+      update();
+    }
+
+    function pause(){
+      if(!running) return;
+      running = false;
+      const now = Date.now();
+      elapsedBeforePause += Math.floor((now - startEpoch)/1000);
+      startEpoch = null;
+      if(timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      update();
+    }
+
+    function reset(){
+      running = false;
+      startEpoch = null;
+      elapsedBeforePause = 0;
+      if(timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      timerBox.classList.remove('over');
+      timerBox.classList.add('ok');
+      warnEmoji.style.display = 'none';
+      timerText.textContent = '10:00';
+      timerState.textContent = 'listo';
+      timerState.style.color = 'var(--muted)';
+    }
+
+    document.getElementById('btnStart').addEventListener('click', start);
+    document.getElementById('btnPause').addEventListener('click', pause);
+    document.getElementById('btnReset').addEventListener('click', reset);
+
+    // Keyboard shortcuts only on break slide
+    document.addEventListener('keydown', (e) => {
+      const current = Reveal.getCurrentSlide();
+      if(!current || current.id !== 'break-slide') return;
+      if(e.key === 's' || e.key === 'S') start();
+      if(e.key === 'p' || e.key === 'P') pause();
+      if(e.key === 'r' || e.key === 'R') reset();
+    });
+
+    Reveal.on('slidechanged', (event) => {
+      if(event.currentSlide && event.currentSlide.id === 'break-slide'){
+        reset();
+      } else {
+        if(running) pause();
+      }
+    });
+  </script>
+</body>
+</html>
